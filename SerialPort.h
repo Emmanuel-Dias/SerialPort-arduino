@@ -16,81 +16,86 @@
 
 #include <Arduino.h>
 
+#define clk_time 2
+
 class SerialPort{
     public:
-        SerialPort(int _port_A, int _port_B, int _port_CLR, int _port_clear, int _port_CLK){
-            port_a= _port_A;            // port of data 01
-            port_b= _port_B;            // port of data 02
-            port_clr= _port_CLR;        // port of count clear
-            port_clear= _port_clear;    // port of clear output modules
-            port_clk= _port_CLK;        // port of clock controller
+        SerialPort(int data, int port, int clear, int clr){
+            _data= data;    // module
+            _port= port;    // port
+            _clear= clear;  // clear module
+            _clr= clr;      // clear controller
 
-            int clock_time= 2;          // ms
-
+            pinMode(_data, OUTPUT);
+            pinMode(_port, OUTPUT);
+            pinMode(_clear, OUTPUT);
+            pinMode(_clr, OUTPUT);
         }
 
-        void _clear(int module= -1){
-            // clear the output module
-            // -1 equal all modules
-            if(module == -1){
-                digitalWrite(port_clear, HIGH);
-
-                for(int x=0; x < 15; x++){
-                    digitalWrite(port_clr, HIGH);
-                    delay(clock_time);
-                    digitalWrite(port_clr, LOW);
-                }
-
-                digitalWrite(port_clear, LOW);
-            }
-            else{
-                count_module(module);
-                digitalWrite(port_clear, HIGH);
-                delay(clock_time);
-                digitalWrite(port_clear, LOW);
-            }
+        string clear_module(int module){
+            request_module(module);
+            request_port(5, true);
         }
 
-        string _call(int module, string port){
-            // alternate the state of port from module
+        string call(int module, string port){
             if(module >= 0 && module <= 15){
-                digitalWrite(port_a, LOW);
-                digitalWrite(port_b, LOW);
-
-                count_module(module);
+                request_module(module);
 
                 if(port == "S0"){
-                    digitalWrite(port_a, LOW);
-                    digitalWrite(port_b, HIGH);
-                    return "[SUCCESS] port > S0 < modify your state";
+                    request_port(1);
+                    return "[SUCCESS] !> port S0 successfully modified";
                 }
                 else if(port == "S1"){
-                    digitalWrite(port_a, HIGH);
-                    digitalWrite(port_b, LOW);
-                    return "[SUCCESS] port > S1 < modify your state";
+                    request_port(2);
+                    return "[SUCCESS] !> port S1 successfully modified";
                 }
                 else if(port == "S2"){
-                    digitalWrite(port_a, HIGH);
-                    digitalWrite(port_b, HIGH);
-                    return "[SUCCESS] port > S2 < modify your state";
+                    request_port(3);
+                    return "[SUCCESS] !> port S2 successfully modified";
                 }
-                else{ return "[ ERROR ] ?> port index out of range"; }
-                
+                else{
+                    return "[ ERROR ] !> port index out of range";
+                }
             }
-            else{ return "[ ERROR ] ?> module index out of range"; }
+            else{
+                return "[ ERROR ] !> module index out of range";
+            }
         }
 
-    
     private:
-        void count_module(int module){
-            digitalWrite(port_clr, HIGH);
-            delay(clock_time);
-            digitalWrite(port_clr, LOW);
+        void request_module(int clk){
+            digitalWrite(_clr, HIGH);
+            delay(clk_time);
+            digitalWrite(_clr, LOW);
 
-            for(int x=0; x < module; x++){
-                digitalWrite(port_clr, HIGH);
-                delay(clock_time);
-                digitalWrite(port_clr, LOW);
+            for(int i=0; i<clk; i++){
+                digitalWrite(_data, HIGH);
+                delay(clk_time);
+                digitalWrite(_data, LOW);
+            }
+        }
+
+        void request_port(int clk, bool clear= false){
+            if(clk <= 4 && clear == false){
+                digitalWrite(_clear, HIGH);
+                delay(clk_time);
+                digitalWrite(_clear, LOW);
+
+                for(int i=0; i<clk; i++){
+                    digitalWrite(_port, HIGH);
+                    delay(clk_time);
+                    digitalWrite(_port, LOW);
+                }
+            else if(clk == 5 && clear == true){
+                digitalWrite(_clear, HIGH);
+                delay(clk_time);
+                digitalWrite(_clear, LOW);
+
+                for(int i=0; i<clk; i++){
+                    digitalWrite(_port, HIGH);
+                    delay(clk_time);
+                    digitalWrite(_port, LOW);
+                }
             }
         }
 }
